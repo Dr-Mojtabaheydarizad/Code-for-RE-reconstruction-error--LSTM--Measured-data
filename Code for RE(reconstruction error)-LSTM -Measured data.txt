@@ -1,0 +1,46 @@
+# Load necessary libraries
+library(readr)
+library(dplyr)
+library(Metrics)
+# Define the function to calculate Relative Error (RE) without absolute value
+calculate_RE <- function(predicted, actual) {
+# Replace zeros in 'actual' to avoid division by zero
+actual[actual == 0] <- NA
+# Calculate RE without absolute value
+RE <- (predicted - actual) / actual
+# Return the RE
+return(RE)
+}
+
+# Set the path to the dataset
+data_path <- "D:/Education/Water journal-2/LSTM.csv"
+
+# Read the dataset with error handling
+data <- tryCatch(read_csv(data_path), error = function(e) {
+  stop("Error reading the dataset: ", conditionMessage(e))
+})
+
+# Check if data is loaded correctly
+if(!inherits(data, "try-error") && is.data.frame(data)) {
+  # Calculate RE for each parameter
+  data <- data %>%
+    mutate(RE_O = calculate_RE(O_Predicted, O),
+           RE_H = calculate_RE(H_Predicted, H),
+           RE_D = calculate_RE(D_Predicted, D))
+  
+  # Extract the directory from the data path
+  output_directory <- dirname(data_path)
+  
+  # Save the updated dataframe with RE calculations
+  write_csv(data, file.path(output_directory, "LSTM_with_RE.csv"))
+  
+  # Save just the RE columns to a separate CSV file
+  RE_data <- select(data, RE_O, RE_H, RE_D)
+  write_csv(RE_data, file.path(output_directory, "RE_Calculations.csv"))
+  
+  # Output a message to the console
+  cat("The RE calculations have been added to the dataframe and saved to 'LSTM_with_RE.csv'.\n")
+  cat("A separate CSV file with RE calculations has been saved as 'RE_Calculations.csv'.\n")
+} else {
+  cat("Error: The dataset could not be loaded as a dataframe. Please check the file path and try again.\n")
+}
